@@ -4,6 +4,9 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import pg from 'pg';
+
+const { Pool } = pg;
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +18,14 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRODUCTION = NODE_ENV === 'production';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'links.json');
+const DATABASE_URL = process.env.DATABASE_URL?.trim() || '';
+const dbPool = DATABASE_URL ? new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000
+}) : null;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const SAFE_BROWSING_API_KEY = process.env.SAFE_BROWSING_API_KEY?.trim() || '';
 const RESERVED_CODES = new Set(['api', 'assets', 'favicon.ico', 'robots.txt', 'health', 'about', 'preview', 'continue']);
@@ -51,32 +62,77 @@ const BASE_URL = normalizeBaseUrl(configuredBaseUrl);
 if (IS_PRODUCTION && !BASE_URL) {
   throw new Error('Set BASE_URL to your public HTTPS address, or deploy on Render so RENDER_EXTERNAL_URL is provided automatically.');
 }
+if (IS_PRODUCTION && !DATABASE_URL) {
+  throw new Error('DATABASE_URL is required in production. Connect a PostgreSQL database (such as Neon Free) so short links survive restarts and spin-downs.');
+}
 
-mkdirSync(DATA_DIR, { recursive: true });
-if (!existsSync(DATA_FILE)) writeFileSync(DATA_FILE, '[]', 'utf8');
+function initializeLocalFileStorage() {
+  mkdirSync(DATA_DIR, { recursive: true });
+  if (!existsSync(DATA_FILE)) writeFileSync(DATA_FILE, '[]', 'utf8');
+}
 
-function readLinks() {
+function readLinksFromFile() {
   try {
     const parsed = JSON.parse(readFileSync(DATA_FILE, 'utf8'));
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.error('Could not read links database:', error.message);
+    console.error('Could not read local links file:', error.message);
     return [];
   }
 }
 
-function writeLinks(links) {
+function writeLinksToFile(links) {
   const tempFile = `${DATA_FILE}.tmp`;
   writeFileSync(tempFile, JSON.stringify(links, null, 2), 'utf8');
   renameSync(tempFile, DATA_FILE);
 }
 
-function saveLinkUpdate(link) {
-  const links = readLinks();
+async function initializeStorage() {
+  if (!dbPool) {
+    initializeLocalFileStorage();
+    console.log(`Local development storage: ${DATA_FILE}`);
+    return;
+  }
+  await dbPool.query(`
+    CREATE TABLE IF NOT EXISTS linkcraft_links (
+      code TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    )
+  `);
+  console.log('Persistent short-link storage: PostgreSQL database');
+}
+
+async function readLinks() {
+  if (!dbPool) return readLinksFromFile();
+  const result = await dbPool.query('SELECT data FROM linkcraft_links');
+  return result.rows.map((row) => typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
+}
+
+async function createStoredLink(link) {
+  if (dbPool) {
+    await dbPool.query('INSERT INTO linkcraft_links (code, data) VALUES ($1, $2::jsonb)', [link.code, JSON.stringify(link)]);
+    return;
+  }
+  const links = readLinksFromFile();
+  if (links.some((item) => item.code.toLowerCase() === link.code.toLowerCase())) {
+    const error = new Error('Short code already exists.');
+    error.code = '23505';
+    throw error;
+  }
+  links.push(link);
+  writeLinksToFile(links);
+}
+
+async function saveLinkUpdate(link) {
+  if (dbPool) {
+    await dbPool.query('UPDATE linkcraft_links SET data = $2::jsonb WHERE code = $1', [link.code, JSON.stringify(link)]);
+    return;
+  }
+  const links = readLinksFromFile();
   const index = links.findIndex((item) => item.code === link.code);
   if (index === -1) return;
   links[index] = link;
-  writeLinks(links);
+  writeLinksToFile(links);
 }
 
 function validateDestination(value) {
@@ -395,7 +451,7 @@ app.post('/api/shorten', async (req, res) => {
     return res.status(503).json({ error: `${error.message} No short link was created.` });
   }
 
-  const links = readLinks();
+  const links = await readLinks();
   let code;
   if (requestedCode) {
     if (links.some((link) => link.code.toLowerCase() === requestedCode.toLowerCase())) {
@@ -417,11 +473,12 @@ app.post('/api/shorten', async (req, res) => {
     threatTypes: scan.threatTypes || [],
     blocked: false
   };
-  links.push(link);
-
   try {
-    writeLinks(links);
+    await createStoredLink(link);
   } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: requestedCode ? 'That alias is already taken. Try another one.' : 'A short-code collision occurred. Please try again.' });
+    }
     console.error('Could not save short link:', error.message);
     return res.status(500).json({ error: 'Could not save this link right now. Please try again.' });
   }
@@ -439,9 +496,9 @@ app.post('/api/shorten', async (req, res) => {
   });
 });
 
-app.get('/api/stats/:code', (req, res) => {
+app.get('/api/stats/:code', async (req, res) => {
   const code = req.params.code;
-  const link = readLinks().find((item) => item.code === code);
+  const link = (await readLinks()).find((item) => item.code === code);
   if (!link) return res.status(404).json({ error: 'Short link not found.' });
   let baseUrl;
   try {
@@ -464,13 +521,13 @@ app.get('/api/stats/:code', (req, res) => {
 });
 
 app.get('/api/preview/:code', async (req, res) => {
-  const link = readLinks().find((item) => item.code === req.params.code);
+  const link = (await readLinks()).find((item) => item.code === req.params.code);
   if (!link) return res.status(404).json({ error: 'Short link not found.' });
 
   try {
     const scan = await scanUrl(link.url);
     applyScanResult(link, scan);
-    saveLinkUpdate(link);
+    await saveLinkUpdate(link);
     return res.json(previewPayload(link));
   } catch (error) {
     return res.status(503).json({
@@ -485,14 +542,14 @@ app.get('/api/preview/:code', async (req, res) => {
 app.get('/:code/continue', async (req, res) => {
   const code = req.params.code;
   if (!/^[a-zA-Z0-9_-]{3,24}$/.test(code)) return res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
-  const links = readLinks();
+  const links = await readLinks();
   const link = links.find((item) => item.code === code);
   if (!link) return res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 
   try {
     const scan = await scanUrl(link.url);
     applyScanResult(link, scan);
-    saveLinkUpdate(link);
+    await saveLinkUpdate(link);
     if (link.blocked || scan.status === 'unsafe') {
       return res.status(403).sendFile(path.join(PUBLIC_DIR, 'preview.html'));
     }
@@ -504,17 +561,17 @@ app.get('/:code/continue', async (req, res) => {
   link.clicks = (link.clicks || 0) + 1;
   link.lastClickedAt = new Date().toISOString();
   try {
-    saveLinkUpdate(link);
+    await saveLinkUpdate(link);
   } catch (error) {
     console.error('Could not update click count:', error.message);
   }
   return res.redirect(302, link.url);
 });
 
-app.get('/:code', (req, res, next) => {
+app.get('/:code', async (req, res, next) => {
   const code = req.params.code;
   if (!/^[a-zA-Z0-9_-]{3,24}$/.test(code)) return next();
-  const link = readLinks().find((item) => item.code === code);
+  const link = (await readLinks()).find((item) => item.code === code);
   if (!link) return res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
   res.set('Cache-Control', 'no-store');
   return res.sendFile(path.join(PUBLIC_DIR, 'preview.html'));
@@ -525,12 +582,18 @@ app.use((req, res) => {
   return res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`LinkCraft local development server: http://localhost:${PORT}`);
-  if (BASE_URL && IS_PRODUCTION) console.log(`Public short-link URL: ${BASE_URL}`);
-  console.log('Public deployments create LinkCraft short links for YouTube and other destinations.');
-  console.log('Locally, a YouTube URL without a custom alias may use the official https://youtu.be/ link; custom aliases require public deployment.');
-  console.log('Custom short links require a public deployment; localhost and LAN links are not generated.');
-  console.log(`Link data is stored in: ${DATA_FILE}`);
-  console.log(`Google Safe Browsing URL scanning: ${SAFE_BROWSING_API_KEY ? 'configured' : 'NOT configured (links will be marked unscanned)'}`);
+async function startServer() {
+  await initializeStorage();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`LinkCraft server listening on port ${PORT}`);
+    if (BASE_URL && IS_PRODUCTION) console.log(`Public short-link URL: ${BASE_URL}`);
+    console.log('Custom short links require a public deployment; localhost and LAN links are not generated.');
+    console.log(`Storage backend: ${dbPool ? 'PostgreSQL (persistent)' : `local JSON file (${DATA_FILE})`}`);
+    console.log(`Google Safe Browsing URL scanning: ${SAFE_BROWSING_API_KEY ? 'configured' : 'NOT configured (links will be marked unscanned)'}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error('LinkCraft failed to start:', error.message);
+  process.exitCode = 1;
 });

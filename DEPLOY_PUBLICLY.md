@@ -1,23 +1,23 @@
-# Publish LinkCraft so custom links work on any network
+# Free public deployment (Render + Neon)
 
-A local website at `http://localhost:3000` is only accessible on the computer running it. LinkCraft will not generate that address as a shareable custom link. To make aliases such as `/rish` or `/inus` work over Wi-Fi or mobile data, deploy LinkCraft to a public HTTPS host.
+This version uses a Render **Free** web service and an external PostgreSQL database so short links are not stored on Render's temporary filesystem.
 
-## Render deployment
+## Before deploying
 
-1. Push the project folder to a GitHub repository.
-2. In Render, select **New → Blueprint** and connect that repository.
-3. Review the service and persistent disk configured in `render.yaml` and confirm the current cost.
-4. Deploy and copy the public HTTPS URL Render provides.
-5. Open the deployed website, paste any HTTP/HTTPS destination (including YouTube), and check **Customize your link**.
-6. Enter a short name such as `rish`; the result will look like `https://your-service.onrender.com/rish`.
-7. Open that result from a phone using mobile data to test it.
+1. Push this updated project to your existing GitHub repository `RISHAV-7001/linkcraft-url-shortener`.
+2. Create a Neon PostgreSQL project at https://neon.tech/ (Free plan is sufficient for a small demo; review its current limits and pricing).
+3. In Neon, open **Connect**, select your project/database/role, and copy the PostgreSQL connection string. Keep it secret; do not put it in GitHub or a committed `.env` file.
+4. In Render, open **New → Blueprint** and choose the same GitHub repository and `main` branch. The updated `render.yaml` defines `plan: free`, no paid disk, and asks for `DATABASE_URL` during first Blueprint creation. Paste the Neon connection string when prompted.
+5. Review the resource plan before deploying. It should show a **Free** web service and no persistent disk. If it shows a paid plan or asks for card details again, stop and do not confirm; verify that the updated `render.yaml` is present on GitHub's `main` branch.
+6. Deploy. Render will set `RENDER_EXTERNAL_URL`; generated links will use the public HTTPS service domain automatically.
 
-The actual domain is assigned by Render and may differ from the example. If the suggested service name is already taken, choose another unique name and use the URL shown in the dashboard.
+## Important limitations
 
-## Why not `tinyurl.com/rish` or `youtube.com/rish`?
+- Render Free web services spin down after 15 minutes idle and can take about a minute to wake. They have an ephemeral filesystem, so this version stores production links in Neon PostgreSQL.
+- The app intentionally refuses to start in production without `DATABASE_URL`, to avoid silently losing links after a restart.
+- Free database services/providers have usage, storage, and compute limits. Check current plan terms before using this for anything important.
+- If Google Safe Browsing is not configured, the app labels destinations as **not scanned**; it does not claim they are safe.
 
-TinyURL owns `tinyurl.com`, and YouTube owns `youtube.com`; LinkCraft cannot create arbitrary paths under either domain. The short links use the public LinkCraft deployment domain, or a custom domain that you own and connect to LinkCraft.
+## Local development
 
-## Public URL configuration
-
-Render provides `RENDER_EXTERNAL_URL` automatically. If deploying elsewhere, set `NODE_ENV=production`, `BASE_URL=https://your-public-domain.example`, and `DATA_DIR` to storage that survives restarts. Do not use localhost or a private LAN IP for `BASE_URL`.
+Run `npm install`, then `npm start`. Without `DATABASE_URL`, local development uses `data/links.json`. Do not commit `.env` or database passwords.

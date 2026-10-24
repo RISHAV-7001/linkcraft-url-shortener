@@ -1,8 +1,11 @@
-# LinkCraft v4.0 changelog
+# Changelog
 
-- Rebranded the app as LinkCraft, a general URL shortener.
-- Added custom aliases for YouTube destinations as well as all other valid HTTP/HTTPS URLs.
-- On public deployment, YouTube URLs now use LinkCraft-hosted short links when the user wants a random code or custom alias.
-- On localhost, a YouTube URL without a custom alias may still return the official `youtu.be` URL; a requested custom alias correctly requires public deployment.
-- Kept localhost and private-LAN addresses out of shareable custom links.
-- Updated deployment guidance and fixed the long-URL placeholder.
+## v4.1.0
+- Changed Render Blueprint to the Free web-service plan.
+- Removed the paid persistent disk that caused Render to require payment information.
+- Added PostgreSQL persistence via `DATABASE_URL` for hosted deployments; local development still uses JSON storage.
+- Production startup now refuses to run without a database URL, preventing silent loss of short links on Render's ephemeral filesystem.
+- Added free deployment instructions for connecting Neon PostgreSQL.
+
+## v4.0.0
+- Custom aliases, public-host URL generation, destination previews, click stats, and optional Safe Browsing.
