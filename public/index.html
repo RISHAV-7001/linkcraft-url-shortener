@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="LinkCraft shortens any HTTP or HTTPS URL and lets you choose a memorable custom ending such as /rish or /inus on your public domain.">
+  <title>LinkCraft — Custom URL Shortener</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="LinkCraft home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M12.7 19.3 10.1 22a5.1 5.1 0 0 1-7.2-7.2l5-5a5.1 5.1 0 0 1 7.2 0" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/><path d="m19.3 12.7 2.6-2.6a5.1 5.1 0 0 1 7.2 7.2l-5 5a5.1 5.1 0 0 1-7.2 0" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/><path d="m11.5 20.5 9-9" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/></svg>
+        </span>
+        <span>linkcraft<span class="brand-period">.</span></span>
+      </a>
+      <nav class="topnav" aria-label="Main navigation">
+        <a href="#how-it-works">How it works</a>
+        <a href="#your-links">Your links</a>
+        <a class="nav-cta" href="#shorten-form">Shorten a link <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button class="mobile-menu" id="mobile-menu" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span></button>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> YOUR LINKS, JUST BETTER</div>
+          <h1 id="hero-title">Short links.<br><span>Made</span> <em>your way.</em></h1>
+          <p class="hero-description">Turn long URLs into short, shareable links. Choose your own ending, such as /rish or /inus, after LinkCraft is deployed publicly.</p>
+          <div class="trust-row">
+            <span class="trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5 19 6v5.1c0 4.4-2.8 7.4-7 9.4-4.2-2-7-5-7-9.4V6l7-2.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span>Free to use</span><span class="trust-divider"></span><span>No account needed</span><span class="trust-divider"></span><span>Click stats for hosted links</span>
+          </div>
+        </div>
+
+        <div class="shortener-card" id="shorten-card">
+          <div class="card-topline"><div class="card-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div><h2>Shorten any link</h2><p>Choose a random short code or make your own memorable name.</p></div><span class="live-pill"><span></span> READY</span></div>
+          <form id="shorten-form" novalidate>
+            <label for="url-input">Paste your long URL</label>
+            <div class="url-input-wrap"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="url-input" name="url" type="url" placeholder="https://www.youtube.com/watch?v=VIDEO_ID" autocomplete="url" required maxlength="2048"><button type="button" class="paste-btn" id="paste-btn">Paste</button></div>
+            <p class="field-help">On a public deployment, your short link uses your LinkCraft domain. Customize the ending to create links such as <strong>your-domain.com/rish</strong>. You cannot create paths on youtube.com itself.</p>
+            <div class="custom-alias-row"><label class="checkbox-label"><input type="checkbox" id="custom-toggle"><span class="custom-check"></span> Customize your link <span class="optional">(public deployment required)</span></label><span class="alias-hint">Choose your link name</span></div>
+            <div class="alias-input-wrap" id="alias-wrap" hidden><span class="alias-prefix" id="alias-prefix">your-site.com/</span><input id="alias-input" type="text" maxlength="24" placeholder="your-custom-name" autocomplete="off" spellcheck="false"><span class="alias-limit">3–24 characters</span></div>
+            <button class="primary-button" type="submit" id="shorten-btn"><span class="button-label">Create short link</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <section class="result-panel" id="result-panel" hidden aria-live="polite">
+            <div class="result-success"><span class="success-check"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>Your link is ready!</strong><span id="result-security-note">Your short link is ready to share.</span></div><button class="icon-button result-dismiss" id="result-dismiss" aria-label="Dismiss result">×</button></div>
+            <div class="result-link-row"><a id="result-url" href="#" target="_blank" rel="noopener noreferrer"></a><button class="copy-button" id="copy-result"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.7"/></svg><span>Copy</span></button></div>
+            <div class="result-footer"><span id="result-original"></span><button class="text-button" id="show-result-stats">View stats ↗</button></div>
+          </section>
+          <div class="card-footer"><span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 19 6v5.1c0 4.4-2.8 7.4-7 9.4-4.2-2-7-5-7-9.4V6l7-2.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Destination preview before every redirect</span><span class="keyboard-hint">↵ <span>ENTER</span></span></div>
+        </div>
+        <div class="hero-decoration decoration-one" aria-hidden="true"></div><div class="hero-decoration decoration-two" aria-hidden="true"></div>
+      </section>
+
+      <section class="stats-strip" aria-label="Product highlights">
+        <div class="strip-item"><div class="strip-icon purple"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12a7 7 0 1 0 2-4.9L5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5 4v5h5M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>Instant results</strong><span>Short links in seconds</span></div></div>
+        <div class="strip-item"><div class="strip-icon orange"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5m0 14h17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m7 15 4-4 3 2 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>Simple analytics</strong><span>Keep track of clicks</span></div></div>
+        <div class="strip-item"><div class="strip-icon green"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/></svg></div><div><strong>Your own alias</strong><span>Make links memorable</span></div></div>
+        <div class="strip-item"><div class="strip-icon blue"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="4" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="14" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM18 14v2" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div><div><strong>Clean & shareable</strong><span>Less clutter, more clarity</span></div></div>
+      </section>
+
+      <section class="how-section" id="how-it-works">
+        <div class="section-heading"><div class="eyebrow centered-eyebrow">THAT'S REALLY IT</div><h2>Three steps. <span>One tiny link.</span></h2><p>Choose a custom ending for any destination. Custom short links require a public domain.</p></div>
+        <div class="steps-grid">
+          <article class="step-card"><div class="step-number">01</div><div class="step-illustration paste-illustration"><div class="fake-line"><span></span><span></span><span></span></div><div class="fake-url"><span class="mini-link-icon">↗</span><span>your-long-url.com/...</span></div><span class="illustration-orbit"></span></div><h3>Drop your link</h3><p>Paste any valid web address into the box above.</p></article>
+          <article class="step-card"><div class="step-number">02</div><div class="step-illustration magic-illustration"><div class="magic-link long-link">very-long-url.com/...</div><div class="magic-arrow">→</div><div class="magic-link short-link">linkcraft.example/abc123</div><span class="sparkle sparkle-a">✳</span><span class="sparkle sparkle-b">✦</span></div><h3>Make it short</h3><p>Get a shorter link, or choose your own custom alias.</p></article>
+          <article class="step-card"><div class="step-number">03</div><div class="step-illustration share-illustration"><div class="share-circle"><svg viewBox="0 0 24 24" fill="none"><path d="M14 5h5v5M19 5l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="share-chip chip-one">Copied!</div><div class="share-chip chip-two">↗ Shared</div></div><h3>Copy & share</h3><p>Send your neat new link anywhere and check its clicks.</p></article>
+        </div>
+      </section>
+
+      <section class="links-section" id="your-links">
+        <div class="links-heading"><div><div class="eyebrow">YOUR LINK SPACE</div><h2>Recently shortened</h2><p>Your recent links stay in this browser, so you can find them again.</p></div><button class="clear-history-button" id="clear-history" hidden>Clear history <span>×</span></button></div>
+        <div class="empty-state" id="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><strong>No links just yet</strong><p>Your shortened links will show up here after you make your first one.</p><a href="#shorten-form">Create your first link <span>↑</span></a></div>
+        <div class="link-list" id="link-list"></div>
+        <p class="privacy-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Your recent-link list is stored locally in this browser. Link destinations and click counts are saved by the server.</p>
+      </section>
+
+      <section class="bottom-cta"><div class="bottom-cta-mark"><svg viewBox="0 0 32 32" fill="none"><path d="M12.7 19.3 10.1 22a5.1 5.1 0 0 1-7.2-7.2l5-5a5.1 5.1 0 0 1 7.2 0M19.3 12.7l2.6-2.6a5.1 5.1 0 0 1 7.2 7.2l-5 5a5.1 5.1 0 0 1-7.2 0M11.5 20.5l9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div><div><h2>Ready to tidy up your links?</h2><p>Your next great short link is just one click away.</p></div><a href="#shorten-form" class="bottom-cta-button">Let's shorten <span>↗</span></a><div class="cta-circle"></div></section>
+    </main>
+
+    <footer class="footer"><a class="brand footer-brand" href="/"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M12.7 19.3 10.1 22a5.1 5.1 0 0 1-7.2-7.2l5-5a5.1 5.1 0 0 1 7.2 0M19.3 12.7l2.6-2.6a5.1 5.1 0 0 1 7.2 7.2l-5 5a5.1 5.1 0 0 1-7.2 0M11.5 20.5l9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><span>linkcraft<span class="brand-period">.</span></span></a><span class="footer-caption">Less link. More click.</span><span class="footer-copyright">Independent link utility · not affiliated with YouTube <span>♥</span></span></footer>
+  </div>
+
+  <dialog class="stats-dialog" id="stats-dialog" aria-labelledby="stats-title">
+    <div class="dialog-heading"><div><div class="eyebrow">LINK INSIGHTS</div><h2 id="stats-title">Link statistics</h2></div><button class="icon-button" id="close-stats" aria-label="Close statistics">×</button></div>
+    <div class="stats-short-link" id="stats-short-link"></div>
+    <div class="stats-metrics"><div class="metric-card"><span>Total clicks</span><strong id="stats-clicks">0</strong><small>All-time visits</small></div><div class="metric-card"><span>Created on</span><strong class="metric-date" id="stats-created">—</strong><small>Link creation date</small></div></div>
+    <div class="stats-destination"><span>DESTINATION URL</span><a href="#" id="stats-destination" target="_blank" rel="noopener noreferrer"></a></div>
+    <div class="stats-last-click"><span class="status-dot"></span><span id="stats-last-click">No clicks recorded yet</span></div>
+    <p class="stats-disclaimer">Click counts update when someone opens the short link. This simple version does not collect visitors' IP addresses or personal details.</p>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
